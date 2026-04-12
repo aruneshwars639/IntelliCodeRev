@@ -1,168 +1,204 @@
 # IntelliCodeRev — AI Security Scanner
 
-Multi-agent vulnerability scanner that automatically finds security issues
-in GitHub repositories and opens fix PRs for human review.
+An AI-powered multi-agent security scanner that automatically finds vulnerabilities in GitHub repositories and opens fix PRs for human review.
 
-Built on **LangGraph + Node.js + React**.
-Based on the CodeAgent paper (EMNLP 2024).
-**Zero axios** — all HTTP via native fetch.
+Built with **Node.js · React · LangGraph · PostgreSQL · Redis**
 
 ---
 
-## How it works
+## What it does
 
 ```
-Your repo
+Your GitHub repo
   ↓
-[Scanner agent]        — reads every source file, finds raw vulnerabilities
+[Scanner agent]      — reads source files, finds vulnerabilities
   ↓
-[QA-Checker]           — filters false positives (pass 1 of 2)
+[QA-Checker]         — filters out false positives
   ↓
-[Fix agent]            — writes minimal code patches for each confirmed finding
+[Fix agent]          — writes code patches for confirmed issues
   ↓
-[Syntax validator]     — runs real AST parser (node/python3) on every fix
+[Syntax validator]   — verifies every patch with a real AST parser
   ↓
-[PR creator]           — creates branch, applies patches, opens GitHub PR
+[PR creator]         — opens a GitHub PR with the fixes
   ↓
-Human reviews & merges — IntelliCodeRev never auto-merges
+You review & merge   — IntelliCodeRev never auto-merges
 ```
 
 ---
 
-## Project structure
+## Prerequisites
+
+Make sure you have these installed on your machine:
+
+- [Node.js](https://nodejs.org/) v18 or higher
+- [Git](https://git-scm.com/)
+- npm (comes with Node.js)
+
+---
+
+## Getting Started
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/YOUR_USERNAME/IntelliCodeRev.git
+cd IntelliCodeRev
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Set up the required free services
+
+You need accounts on these platforms (all free):
+
+| Service | Purpose | Sign up |
+|---------|---------|---------|
+| [Neon](https://neon.tech) | PostgreSQL database | neon.tech |
+| [Upstash](https://upstash.com) | Redis job queue | upstash.com |
+| [Groq](https://console.groq.com) | Free LLM API | console.groq.com |
+| [GitHub OAuth App](https://github.com/settings/developers) | Login + webhooks | github.com/settings/developers |
+
+#### Setting up GitHub OAuth App
+1. Go to **GitHub → Settings → Developer settings → OAuth Apps → New OAuth App**
+2. Set **Homepage URL** to `http://localhost:5173`
+3. Set **Authorization callback URL** to `http://localhost:3001/auth/callback`
+4. Copy the **Client ID** and generate a **Client Secret**
+
+#### Setting up Neon (Database)
+1. Create a project at [neon.tech](https://neon.tech)
+2. Copy the **Connection String** (looks like `postgresql://user:pass@...neon.tech/neondb?sslmode=require`)
+3. Go to the **SQL Editor** in Neon and paste + run the contents of `backend/src/db/schema.sql`
+
+#### Setting up Upstash (Redis)
+1. Create a database at [upstash.com](https://upstash.com)
+2. Copy the **Redis URL** (starts with `rediss://`)
+
+#### Setting up Groq (LLM)
+1. Sign up at [console.groq.com](https://console.groq.com)
+2. Go to **API Keys** and create a new key
+
+---
+
+### 4. Configure your environment variables
+
+Copy the example env file:
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and fill in your values:
+
+```env
+# Database (from Neon)
+DATABASE_URL=postgresql://user:pass@your-host.neon.tech/neondb?sslmode=require
+
+# Redis (from Upstash)
+UPSTASH_REDIS_URL=rediss://default:yourpassword@your-host.upstash.io:6379
+
+# LLM (from Groq)
+GROQ_API_KEY=your_groq_api_key
+LLM_PROVIDER=groq
+LLM_MODEL=llama-3.1-70b-versatile
+
+# GitHub OAuth App
+GITHUB_CLIENT_ID=your_client_id
+GITHUB_CLIENT_SECRET=your_client_secret
+GITHUB_WEBHOOK_SECRET=any_random_string
+
+# JWT — generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=your_generated_secret
+JWT_EXPIRES_IN=7d
+
+# App URLs (keep as-is for local dev)
+FRONTEND_URL=http://localhost:5173
+BACKEND_URL=http://localhost:3001
+```
+
+---
+
+### 5. Run the project
+
+You need **3 terminal windows** running at the same time:
+
+**Terminal 1 — Backend API**
+```bash
+npm run dev:backend
+```
+
+**Terminal 2 — Agent worker**
+```bash
+npm run dev:agents
+```
+
+**Terminal 3 — Frontend**
+```bash
+npm run dev:frontend
+```
+
+Then open **http://localhost:5173** in your browser.
+
+---
+
+## Project Structure
 
 ```
-intelliCodeRev/
-├── backend/        Express API — auth, repos, reviews, webhook
-├── frontend/       React dashboard — no axios, pure fetch
-├── agents/         LangGraph worker — 5 nodes, 3 tools
-├── shared/         Shared types
-├── .env.example    All env vars documented
+IntelliCodeRev/
+├── backend/          Express API — auth, repos, reviews, webhooks
+├── frontend/         React dashboard
+├── agents/           LangGraph multi-agent worker
+├── shared/           Shared types
+├── .env.example      All environment variables with descriptions
 └── docker-compose.yml
 ```
 
 ---
 
-## Quick start
+## Running with Docker (alternative)
 
-### 1. Clone and install
-```bash
-git clone <repo>
-cd intelliCodeRev
-cp .env.example .env      # fill in your keys (see below)
-npm install
-```
+If you have [Docker](https://www.docker.com/) installed, you can run everything with one command:
 
-### 2. Set up free services
-
-| Service | What for | Link |
-|---------|----------|------|
-| Supabase | PostgreSQL database | supabase.com |
-| Upstash | Redis (job queue) | upstash.com |
-| Groq | Free LLM API | console.groq.com |
-| GitHub App | OAuth + webhooks | github.com/settings/apps |
-
-### 3. Supabase schema
-Paste `backend/src/db/schema.sql` into the Supabase SQL editor and run it.
-
-### 4. Minimum .env to start
-```env
-GITHUB_CLIENT_ID=...
-GITHUB_CLIENT_SECRET=...
-GITHUB_WEBHOOK_SECRET=...
-
-SUPABASE_URL=...
-SUPABASE_SERVICE_KEY=...
-
-UPSTASH_REDIS_URL=...
-
-GROQ_API_KEY=...
-LLM_PROVIDER=groq
-LLM_MODEL=llama-3.1-70b-versatile
-
-JWT_SECRET=<run: openssl rand -hex 32>
-FRONTEND_URL=http://localhost:5173
-BACKEND_URL=http://localhost:3001
-```
-
-### 5. Run
-
-**With Docker:**
 ```bash
 docker-compose up
 ```
 
-**Without Docker (4 terminals):**
-```bash
-# Terminal 1 — Redis
-redis-server
-
-# Terminal 2 — Backend API
-npm run dev:backend
-
-# Terminal 3 — Agent worker
-npm run dev:agents
-
-# Terminal 4 — Frontend
-npm run dev:frontend
-```
-
-Open http://localhost:5173
-
 ---
 
-## LLM providers
+## Switching LLM Providers
 
-Swap via `LLM_PROVIDER` + `LLM_MODEL` in `.env`:
+Change `LLM_PROVIDER` and `LLM_MODEL` in your `.env`:
 
 | Provider | Model | Free tier |
 |----------|-------|-----------|
-| `groq` | `llama-3.1-70b-versatile` | 6000 req/day ✓ |
-| `groq` | `llama-3.1-8b-instant` | 14400 req/day ✓ |
-| HuggingFace | `Qwen/Qwen2.5-Coder-7B-Instruct` | Self-hosted ✓ |
+| `groq` | `llama-3.1-70b-versatile` | 6,000 req/day |
+| `groq` | `llama-3.1-8b-instant` | 14,400 req/day |
 
 ---
 
 ## Deployment (all free tiers)
 
-| Component | Platform | Notes |
-|-----------|----------|-------|
-| Frontend | Vercel | `npm run build` → deploy |
-| Backend | Render | Free 500h/month |
-| Agents | Render | Separate service |
-| Database | Supabase | 500MB free |
-| Redis | Upstash | 10k req/day free |
-| LLM demo | HF Spaces | CPU-basic free |
+| Part | Platform | Notes |
+|------|----------|-------|
+| Frontend | [Vercel](https://vercel.com) | Connect GitHub repo, auto-deploys |
+| Backend | [Render](https://render.com) | Free 500h/month |
+| Agents | [Render](https://render.com) | Deploy as separate service |
+| Database | [Neon](https://neon.tech) | 500MB free |
+| Redis | [Upstash](https://upstash.com) | 10k req/day free |
 
 ---
 
-## Security note — axios supply chain attack
+## Common Issues
 
-This project deliberately uses **zero axios**.
-All HTTP calls use the native `fetch` API (Node.js 18+ built-in).
+**`Database connection failed` on startup**
+- Make sure your `DATABASE_URL` is correct in `.env`
+- For local Postgres, add `DB_SSL=false` to your `.env`
 
-On March 31, 2026, axios versions 1.14.1 and 0.30.4 were compromised
-in a supply chain attack attributed to North Korean state actors,
-deploying a RAT on developer machines via a postinstall hook.
+**`Invalid token` errors**
+- Make sure `JWT_SECRET` is set and is at least 32 characters long
 
-Safe alternatives used in this project:
-- Frontend HTTP → native `fetch`
-- GitHub API → `@octokit/rest` (official GitHub SDK)
-- GitHub OAuth → native `fetch`
-
----
-
-## Research / evaluation
-
-Run a batch scan across multiple repos for benchmarking:
-
-```bash
-# POST to /reviews with multiple repos (future batch endpoint)
-# Results saved with trigger='batch' for analysis
-```
-
-Compare multi-agent vs single-LLM by checking findings count and
-false positive rate across the same repos.
-
-Key metric: **QA-Checker rejection rate** — what % of raw scanner
-findings were rejected as false positives before any code was touched.
+**GitHub login not working**
+- Double-check the OAuth callback URL matches exactly: `http://localhost:3001/auth/callback`
