@@ -1,0 +1,31 @@
+version: '3.9'
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ['6379:6379']
+    volumes: [redis_data:/data]
+
+  backend:
+    build: { context: ./backend, dockerfile: Dockerfile.dev }
+    ports: ['3001:3001']
+    volumes: ['./backend/src:/app/src', './shared:/app/shared']
+    env_file: [.env]
+    environment: [UPSTASH_REDIS_URL=redis://redis:6379]
+    depends_on: [redis]
+
+  agents:
+    build: { context: ./agents, dockerfile: Dockerfile.dev }
+    ports: ['3002:3002']
+    volumes: ['./agents/src:/app/src', './shared:/app/shared']
+    env_file: [.env]
+    environment: [UPSTASH_REDIS_URL=redis://redis:6379]
+    depends_on: [redis]
+
+  frontend:
+    build: { context: ./frontend, dockerfile: Dockerfile.dev }
+    ports: ['5173:5173']
+    volumes: ['./frontend/src:/app/src']
+    env_file: [.env]
+
+volumes:
+  redis_data:
