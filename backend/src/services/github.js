@@ -1,17 +1,15 @@
-/**
- * All GitHub API calls use native fetch — no axios dependency.
- */
+
 
 // Exchange OAuth code for GitHub access token
 export async function getGithubToken(code) {
   const res = await fetch('https://github.com/login/oauth/access_token', {
-    method:  'POST',
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Accept':       'application/json',
+      'Accept': 'application/json',
     },
     body: JSON.stringify({
-      client_id:     process.env.GITHUB_CLIENT_ID,
+      client_id: process.env.GITHUB_CLIENT_ID,
       client_secret: process.env.GITHUB_CLIENT_SECRET,
       code,
     }),
@@ -26,7 +24,7 @@ export async function getGithubUser(token) {
   const res = await fetch('https://api.github.com/user', {
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept:        'application/vnd.github+json',
+      Accept: 'application/vnd.github+json',
     },
   })
   if (!res.ok) throw new Error(`GitHub user fetch failed: ${res.status}`)
@@ -38,7 +36,7 @@ export async function getGithubRepos(token) {
   const res = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept:        'application/vnd.github+json',
+      Accept: 'application/vnd.github+json',
     },
   })
   if (!res.ok) throw new Error(`GitHub repos fetch failed: ${res.status}`)
@@ -50,8 +48,8 @@ export function parsePrUrl(url) {
   const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/)
   if (!match) throw new Error(`Invalid GitHub PR URL: ${url}`)
   return {
-    owner:    match[1],
-    repo:     match[2],
+    owner: match[1],
+    repo: match[2],
     prNumber: parseInt(match[3], 10),
   }
 }

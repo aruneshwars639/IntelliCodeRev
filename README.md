@@ -41,7 +41,7 @@ Make sure you have these installed on your machine:
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/IntelliCodeRev.git
+git clone https://github.com/Mtarun2005/IntelliCodeRev.git
 cd IntelliCodeRev
 ```
 

@@ -167,7 +167,6 @@ function FindingCard({ finding }) {
   return (
     <div style={{
       padding:'10px 12px', marginBottom: 8,
-      borderLeft:`3px solid ${s.border}`,
       background:'#141414', borderRadius:'0 6px 6px 0',
       border:`1px solid #1f1f1f`,
       borderLeft:`3px solid ${s.border}`,

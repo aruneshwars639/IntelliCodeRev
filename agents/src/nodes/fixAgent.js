@@ -23,13 +23,17 @@ Write a fix that:
 3. Matches the existing code style exactly
 4. Is as minimal as possible — touch only what needs changing
 
-Respond ONLY with JSON in triple backticks:
-\`\`\`json
-{
-  "fixedContent": "<complete fixed file content — the entire file>",
-  "rationale": "one sentence: what changed and why it fixes the vulnerability",
-  "linesChanged": [<list of line numbers modified>]
-}
+Respond ONLY using this exact markdown format, with no extra text:
+
+### Rationale
+One sentence: what changed and why it fixes the vulnerability
+
+### Lines
+12, 13, 15
+
+### Fixed Code
+\`\`\`javascript
+// complete fixed file content — the entire file
 \`\`\``
 
 export async function fixAgentNode(state) {
@@ -67,10 +71,21 @@ export async function fixAgentNode(state) {
         .replace('{{FULL_CONTENT}}',    fullFile.content)
 
       const response  = await llm.invoke(prompt)
-      const jsonMatch = response.content.match(/```json\n([\s\S]*?)\n```/)
-      if (!jsonMatch) throw new Error('No JSON returned by fix agent')
+      
+      const rationaleMatch = response.content.match(/### Rationale\n([\s\S]*?)(?=### Lines)/i)
+      const linesMatch     = response.content.match(/### Lines\n([\s\S]*?)(?=### Fixed Code)/i)
+      const contentMatch   = response.content.match(/### Fixed Code\n```[a-z]*\n([\s\S]*?)```/i)
 
-      const fix = JSON.parse(jsonMatch[1])
+      if (!contentMatch) {
+        console.error(`\n--- RAW LLM RESPONSE ---\n${response.content}\n------------------------\n`)
+        throw new Error('No `Fixed Code` block returned by fix agent')
+      }
+
+      const fix = {
+        fixedContent: contentMatch[1].trim(),
+        rationale: rationaleMatch ? rationaleMatch[1].trim() : 'Fixed vulnerability',
+        linesChanged: linesMatch ? linesMatch[1].split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : []
+      }
 
       fixes.push({
         filePath:     finding.file,

@@ -2,6 +2,7 @@ import express    from 'express'
 import cors       from 'cors'
 import helmet     from 'helmet'
 import 'dotenv/config'
+import 'express-async-errors'
 
 import { pool }          from './db/supabase.js'
 import authRoutes        from './routes/auth.js'

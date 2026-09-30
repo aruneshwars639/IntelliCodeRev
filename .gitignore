@@ -3,6 +3,8 @@ node_modules/
 backend/.env
 frontend/.env
 agents/.env
+agents/scratch/
 *.log
 .DS_Store
 dist/
+coverage/

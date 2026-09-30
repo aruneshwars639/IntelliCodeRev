@@ -3,10 +3,21 @@ import pg          from 'pg'
 
 const { Pool } = pg
 
+function sanitizeUrl(url) {
+  try {
+    const u = new URL(url)
+    u.searchParams.delete('sslmode')
+    u.searchParams.delete('channel_binding')
+    return u.toString()
+  } catch { return url }
+}
+
 function getPool() {
+  const rawUrl = process.env.DATABASE_URL
+  const isLocal = rawUrl?.includes("localhost") || process.env.DB_SSL === "false"
   return new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: (process.env.DATABASE_URL?.includes("localhost") || process.env.DB_SSL === "false") ? false : { rejectUnauthorized: false },
+    connectionString: isLocal ? rawUrl : sanitizeUrl(rawUrl),
+    ssl: isLocal ? false : { rejectUnauthorized: false },
     max: 3,
   })
 }
@@ -18,7 +29,18 @@ export async function createFixPR({ owner, repo, baseBranch = 'main', fixes, fin
   )
   await pool.end()
 
-  const octokit    = new Octokit({ auth: rows[0]?.github_token })
+  const octokit = new Octokit({ 
+    auth: rows[0]?.github_token,
+    log: {
+      debug: () => {},
+      info: () => {},
+      warn: () => {},
+      error: console.error
+    },
+    request: {
+      headers: { 'X-GitHub-Api-Version': '2022-11-28' }
+    }
+  })
   const branchName = `intelliCodeRev/security-fix-${Date.now()}`
 
   // Create branch

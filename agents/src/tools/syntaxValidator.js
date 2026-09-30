@@ -1,16 +1,16 @@
-import { execSync }                               from 'child_process'
+import { execSync } from 'child_process'
 import { writeFileSync, unlinkSync, mkdtempSync } from 'fs'
-import { join }                                   from 'path'
-import { tmpdir }                                 from 'os'
+import { join } from 'path'
+import { tmpdir } from 'os'
 
 export async function validateSyntax({ code, filePath }) {
-  const ext  = (filePath ?? '').split('.').pop().toLowerCase()
-  const lang = { js:'js', jsx:'js', mjs:'js', cjs:'js', ts:'ts', tsx:'ts', py:'py', json:'json' }[ext] ?? 'other'
+  const ext = (filePath ?? '').split('.').pop().toLowerCase()
+  const lang = { js: 'js', jsx: 'js', mjs: 'js', cjs: 'js', ts: 'ts', tsx: 'ts', py: 'py', json: 'json' }[ext] ?? 'other'
 
   try {
-    if (lang === 'js')   return validateJS(code)
-    if (lang === 'ts')   return validateJS(code)   // acorn handles modern JS; tsc optional
-    if (lang === 'py')   return validatePython(code)
+    if (lang === 'js') return validateJS(code)
+    if (lang === 'ts') return validateJS(code)
+    if (lang === 'py') return validatePython(code)
     if (lang === 'json') return validateJSON(code)
     return validateBrackets(code)
   } catch (err) {
@@ -19,7 +19,7 @@ export async function validateSyntax({ code, filePath }) {
 }
 
 function validateJS(code) {
-  const dir  = mkdtempSync(join(tmpdir(), 'intelliCodeRev-'))
+  const dir = mkdtempSync(join(tmpdir(), 'intelliCodeRev-'))
   const file = join(dir, 'check.mjs')
   writeFileSync(file, code)
   try {
@@ -28,12 +28,12 @@ function validateJS(code) {
   } catch (err) {
     return { valid: false, error: firstErrorLine(err.stderr?.toString() ?? err.message) }
   } finally {
-    try { unlinkSync(file) } catch {}
+    try { unlinkSync(file) } catch { }
   }
 }
 
 function validatePython(code) {
-  const dir  = mkdtempSync(join(tmpdir(), 'intelliCodeRev-'))
+  const dir = mkdtempSync(join(tmpdir(), 'intelliCodeRev-'))
   const file = join(dir, 'check.py')
   writeFileSync(file, code)
   try {
@@ -42,7 +42,7 @@ function validatePython(code) {
   } catch (err) {
     return { valid: false, error: firstErrorLine(err.stderr?.toString() ?? err.message) }
   } finally {
-    try { unlinkSync(file) } catch {}
+    try { unlinkSync(file) } catch { }
   }
 }
 
@@ -52,20 +52,20 @@ function validateJSON(code) {
 }
 
 function validateBrackets(code) {
-  const pairs = { ')':'(', ']':'[', '}':'{' }
+  const pairs = { ')': '(', ']': '[', '}': '{' }
   const stack = []
   let inStr = false, strCh = null
   for (let i = 0; i < code.length; i++) {
     const c = code[i]
-    if (inStr) { if (c === strCh && code[i-1] !== '\\') inStr = false; continue }
+    if (inStr) { if (c === strCh && code[i - 1] !== '\\') inStr = false; continue }
     if (c === '"' || c === "'" || c === '`') { inStr = true; strCh = c; continue }
     if ('([{'.includes(c)) stack.push(c)
     else if (')]}'.includes(c)) {
-      if (stack[stack.length-1] !== pairs[c]) return { valid: false, error: `Unmatched '${c}' at pos ${i}` }
+      if (stack[stack.length - 1] !== pairs[c]) return { valid: false, error: `Unmatched '${c}' at pos ${i}` }
       stack.pop()
     }
   }
-  return stack.length ? { valid: false, error: `Unclosed '${stack[stack.length-1]}'` } : { valid: true, error: null }
+  return stack.length ? { valid: false, error: `Unclosed '${stack[stack.length - 1]}'` } : { valid: true, error: null }
 }
 
 function firstErrorLine(text) {
