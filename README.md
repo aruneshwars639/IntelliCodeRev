@@ -38,20 +38,13 @@ Make sure you have these installed on your machine:
 
 ## Getting Started
 
-### 1. Clone the repo
-
-```bash
-git clone https://github.com/aruneshwars639/IntelliCodeRev.git
-cd IntelliCodeRev
-```
-
-### 2. Install dependencies
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Set up the required free services
+### 2. Set up the required free services
 
 You need accounts on these platforms (all free):
 
@@ -83,7 +76,7 @@ You need accounts on these platforms (all free):
 
 ---
 
-### 4. Configure your environment variables
+### 3. Configure your environment variables
 
 Copy the example env file:
 
@@ -121,7 +114,7 @@ BACKEND_URL=http://localhost:3001
 
 ---
 
-### 5. Run the project
+### 4. Run the project
 
 You need **3 terminal windows** running at the same time:
 
